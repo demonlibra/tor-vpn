@@ -68,7 +68,7 @@ if [ "$form" == "0" ] || [ "$form" == "3" ]
 		echo "Задание настроек прокси вручную"
 		sleep 2
 
-		notify-send -i "gtk-ok" "Proxy" "Заданы настройки вручную"			# Вывод уведомления
+		#notify-send -i "gtk-ok" "Proxy" "Заданы настройки вручную"			# Вывод уведомления
 
 elif [ $? == "1" ]															# Выключение proxy
 	then
@@ -94,5 +94,5 @@ elif [ $? == "1" ]															# Выключение proxy
 		echo "Включение Wi-Fi"
 		sleep 2																# Пауза 2 секунды
 
-		notify-send -i "gtk-ok" "Proxy" "Отключен"							# Вывод уведомления
+		#notify-send -i "gtk-ok" "Proxy" "Отключен"							# Вывод уведомления
 fi
