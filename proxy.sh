@@ -24,14 +24,13 @@ clear
 
 if [ "$form" == "0" ]
 	then
-		echo "Введите пароль"
-		echo
-		sudo echo
-
 		if [ "$connection_name" ]
 			then
-				echo "Названия подключения: $connection_name"
+				echo
+				echo "Название подключения: $connection_name"
+				
 				nmcli con mod "$connection_name" ipv4.dns "$dns"				# Задание IP адреса DNS сервера
+				echo
 				echo "Задание IP адреса DNS: $dns"
 				nmcli con mod "$connection_name" ipv4.ignore-auto-dns yes		# Отключение автоматического получения IP адреса DNS от маршрутизатора
 				echo "Отключение автоматического получения IP адреса DNS от маршрутизатора"
@@ -44,13 +43,16 @@ if [ "$form" == "0" ]
 			then
 				nmcli radio all off											# Выключение Wi-Fi
 				echo "Выключение Wi-Fi"
-				sleep 1														# Пауза 1 секунду
 			fi
+
+		echo
+		echo "Введите пароль"
+		echo
+		sudo echo
 
 		nmcli radio wifi on													# Включение Wi-Fi
 		echo "Включение Wi-Fi"
 		echo
-		sleep 1																# Пауза 3 секунды
 
 		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]]	# Проверка подключения к сети wifi
 			do
@@ -74,7 +76,11 @@ elif [ "$form" == "3" ]														# Выключение proxy
 	then
 		if [ "$connection_name" ]
 			then
+				echo
+				echo "Название подключения: $connection_name"
+
 				nmcli con mod "$connection_name" ipv4.ignore-auto-dns no	# Включение получения адреса DNS от маршрутизатора
+				echo
 				echo "Включение автоматического получения IP адреса DNS от маршрутизатора"
 			fi
 
