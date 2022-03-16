@@ -43,16 +43,17 @@ if [ "$form" == "0" ]
 			then
 				nmcli radio all off											# Выключение Wi-Fi
 				echo "Выключение Wi-Fi"
+				sleep 1
 			fi
+
+		nmcli radio wifi on													# Включение Wi-Fi
+		echo "Включение Wi-Fi"
+		echo
 
 		echo
 		echo "Введите пароль"
 		echo
 		sudo echo
-
-		nmcli radio wifi on													# Включение Wi-Fi
-		echo "Включение Wi-Fi"
-		echo
 
 		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]]	# Проверка подключения к сети wifi
 			do
