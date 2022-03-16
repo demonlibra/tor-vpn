@@ -16,13 +16,13 @@ if [[ `gsettings get org.gnome.system.proxy mode` == "'manual'" ]]
 	else proxy_status="\nProxy Отключен"
 fi
 
-dialog --title "Tor & Proxy" --ok-label "Включить" --cancel-label "Отключить" \
-		--extra-button --extra-label "Рестарт" --default-button extra \
+dialog --title "Tor & Proxy" --ok-label "Рестарт" --cancel-label "Выход" \
+		--extra-button --extra-label "Отключить" --default-button ok \
 		--pause "$proxy_status" 9 40 5
 form="$?"
 clear
 
-if [ "$form" == "0" ] || [ "$form" == "3" ]
+if [ "$form" == "0" ]
 	then
 		echo "Введите пароль"
 		echo
@@ -50,7 +50,7 @@ if [ "$form" == "0" ] || [ "$form" == "3" ]
 		nmcli radio wifi on													# Включение Wi-Fi
 		echo "Включение Wi-Fi"
 		echo
-		sleep 1																# Пауза 2 секунды
+		sleep 1																# Пауза 3 секунды
 
 		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]]	# Проверка подключения к сети wifi
 			do
@@ -63,20 +63,19 @@ if [ "$form" == "0" ] || [ "$form" == "3" ]
 		echo "Сброс сервиса privoxy"
 		sudo systemctl restart dnscrypt-proxy								# Сброс сервиса dnscrypt
 		echo "Сброс сервиса dnscrypt"
-
+		echo
 		gsettings set org.gnome.system.proxy mode 'manual'					# Прокси вручную
 		echo "Задание настроек прокси вручную"
-		sleep 2
+		sleep 3
 
 		#notify-send -i "gtk-ok" "Proxy" "Заданы настройки вручную"			# Вывод уведомления
 
-elif [ $? == "1" ]															# Выключение proxy
+elif [ "$form" == "3" ]														# Выключение proxy
 	then
-		clear
-
 		if [ "$connection_name" ]
 			then
 				nmcli con mod "$connection_name" ipv4.ignore-auto-dns no	# Включение получения адреса DNS от маршрутизатора
+				echo "Включение автоматического получения IP адреса DNS от маршрутизатора"
 			fi
 
 		gsettings set org.gnome.system.proxy mode 'none'					# Если прокси был включен, выключить прокси
@@ -92,7 +91,7 @@ elif [ $? == "1" ]															# Выключение proxy
 
 		nmcli radio wifi on													# Включение Wi-Fi
 		echo "Включение Wi-Fi"
-		sleep 2																# Пауза 2 секунды
+		sleep 3																# Пауза 3 секунды
 
 		#notify-send -i "gtk-ok" "Proxy" "Отключен"							# Вывод уведомления
 fi
