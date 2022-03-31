@@ -1,29 +1,42 @@
 #!/bin/bash
 
-#dns="77.88.8.8"
-#dns="8.8.8.8"
+#dns="77.88.8.8"				# IP адрес для DNS Yandex 
+#dns="8.8.8.8"					# IP адрес для DNS Google
 #dns="208.67.222.123"
 #dns="89.233.43.71"
 #dns="1.1.1.3"
-dns="127.0.2.1"																# IP адрес для dnscrypt
+dns="127.0.2.1"					# IP адрес для dnscrypt
 
 connection_name=`nmcli -g name,type connection  show  --active \
-		| awk -F: '/ethernet|wireless/ { print $1 }'`						# Имя подключения к точке доступа
+		| awk -F: '/ethernet|wireless/ { print $1 }'`					# Имя подключения к точке доступа
 
-mode=`gsettings get org.gnome.system.proxy mode`							# Текущее состояние proxy
+#`gsettings get org.gnome.system.proxy mode`							# Текущее состояние proxy
 if [[ `gsettings get org.gnome.system.proxy mode` == "'manual'" ]]
 	then proxy_status="\nProxy Включен"
 	else proxy_status="\nProxy Отключен"
-fi
+	fi
 
-dialog --title "Tor & Proxy" --ok-label "Рестарт" --cancel-label "Выход" \
-		--extra-button --extra-label "Отключить" --default-button ok \
-		--pause "$proxy_status" 9 40 5
+
+if [ `nmcli | grep "proton"` ]
+	then vpn_status="VPN Включен"
+	else vpn_status="VPN Отключен"
+	fi
+	
+dialog --title "Internet" --ok-label "Tor&Proxy" --cancel-label "Отключить" \
+		--extra-button --extra-label "VPN" --default-button ok \
+		--pause "$proxy_status\n$vpn_status" 11 40 10
 form="$?"
 clear
 
-if [ "$form" == "0" ]
+if [ "$form" == "0" ]	# Tor и Proxy
 	then
+		if [[ `nmcli | grep "proton"` ]]
+			then
+				echo "Отключение от VPN"
+				protonvpn-cli disconnect
+				protonvpn-cli ks --off
+			fi
+
 		if [ "$connection_name" ]
 			then
 				echo
@@ -39,15 +52,12 @@ if [ "$form" == "0" ]
 				echo
 			fi
 
-		if [[ `nmcli radio wifi` == "enabled" ]]
-			then
-				nmcli radio all off											# Выключение Wi-Fi
-				echo "Выключение Wi-Fi"
-				sleep 1
-			fi
+		nmcli networking off											# Выключение сети
+		echo "Выключение сети"
+		sleep 3
 
-		nmcli radio wifi on													# Включение Wi-Fi
-		echo "Включение Wi-Fi"
+		nmcli networking on														# Включение Wi-Fi
+		echo "Включение сети"
 		echo
 
 		echo
@@ -55,9 +65,10 @@ if [ "$form" == "0" ]
 		echo
 		sudo echo
 
-		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]]	# Проверка подключения к сети wifi
+		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] && [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
 			do
-				sleep 1
+				echo "Ждём Wi-Fi или USB-модем"
+				sleep 3
 			done
 
 		sudo service tor restart											# Сброс сервиса tor
@@ -71,34 +82,84 @@ if [ "$form" == "0" ]
 		echo "Задание настроек прокси вручную"
 		sleep 3
 
-		#notify-send -i "gtk-ok" "Proxy" "Заданы настройки вручную"			# Вывод уведомления
-
-elif [ "$form" == "3" ]														# Выключение proxy
+elif [ "$form" == "3" ]		# ProtonVPN
 	then
-		if [ "$connection_name" ]
+		if [[ `gsettings get org.gnome.system.proxy mode` == "'manual'" ]]
 			then
-				echo
-				echo "Название подключения: $connection_name"
+				if [ "$connection_name" ]
+					then
+						echo
+						echo "Название подключения: $connection_name"
 
-				nmcli con mod "$connection_name" ipv4.ignore-auto-dns no	# Включение получения адреса DNS от маршрутизатора
-				echo
-				echo "Включение автоматического получения IP адреса DNS от маршрутизатора"
+						nmcli con mod "$connection_name" ipv4.ignore-auto-dns no	# Включение получения адреса DNS от маршрутизатора
+						echo
+						echo "Включение автоматического получения IP адреса DNS от маршрутизатора"
+					fi
+
+				gsettings set org.gnome.system.proxy mode 'none'					# Если прокси был включен, выключить прокси
+				echo "Отключение использования прокси"
 			fi
 
-		gsettings set org.gnome.system.proxy mode 'none'					# Если прокси был включен, выключить прокси
-		echo "Отключение использования прокси"
+			
+		if [[ `nmcli | grep "proton"` ]]
+			then
+				echo "Отключение от VPN"
+				protonvpn-cli disconnect
+				protonvpn-cli ks --off
+				sleep 1
+			fi
+
+		nmcli networking  off						# Выключение сети
+		echo "Выключение сети"
+		sleep 3										# Пауза
+
+		nmcli networking on							# Включение сети
+		echo "Включение сети"
+
+		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] && [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
+			do
+				echo "Ждём Wi-Fi или USB-модем"
+				sleep 3
+			done
+
 		echo
+		protonvpn-cli c -f
+		sleep 3
 
-		if [[ `nmcli radio wifi` == "enabled" ]]
-			then
-				nmcli radio all off											# Выключение Wi-Fi
-				echo "Выключение Wi-Fi"
-				sleep 1														# Пауза 1 секунду
+elif [ "$form" == "1" ]														# Выключение tor, proxy и vpn
+	then
+		if [[ `nmcli | grep "proton"` ]]
+			then 
+				protonvpn-cli disconnect
+				protonvpn-cli ks --off
 			fi
 
-		nmcli radio wifi on													# Включение Wi-Fi
-		echo "Включение Wi-Fi"
-		sleep 3																# Пауза 3 секунды
+		if [[ `gsettings get org.gnome.system.proxy mode` == "'manual'" ]]
+			then
+				if [ "$connection_name" ]
+					then
+						echo
+						echo "Название подключения: $connection_name"
+						nmcli con mod "$connection_name" ipv4.ignore-auto-dns no	# Включение получения адреса DNS от маршрутизатора
+						echo
+						echo "Включение автоматического получения IP адреса DNS от маршрутизатора"
+				fi
 
-		#notify-send -i "gtk-ok" "Proxy" "Отключен"							# Вывод уведомления
-fi
+				gsettings set org.gnome.system.proxy mode 'none'					# Если прокси был включен, выключить прокси
+				echo "Отключение использования прокси"
+				echo
+			fi
+
+		nmcli networking off										# Выключение сети
+		echo "Выключение сети"
+		sleep 3														# Пауза
+
+		nmcli networking on													# Включение сети
+		echo "Включение сети"
+
+		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] && [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
+			do
+				echo "Ждём Wi-Fi или USB-модем"
+				sleep 3
+			done
+	fi
