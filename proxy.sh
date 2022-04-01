@@ -115,6 +115,7 @@ elif [ "$form" == "3" ]		# ProtonVPN
 
 		nmcli networking on							# Включение сети
 		echo "Включение сети"
+		echo
 
 		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] && [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
 			do
@@ -123,8 +124,13 @@ elif [ "$form" == "3" ]		# ProtonVPN
 			done
 
 		echo
-		protonvpn-cli c -f
-		sleep 3
+		while [ "$connect_status" != "0" ]
+			do
+				protonvpn-cli connect --fastest
+				connect_status=$?
+				sleep 3
+				echo
+			done
 
 elif [ "$form" == "1" ]														# Выключение tor, proxy и vpn
 	then
@@ -156,6 +162,7 @@ elif [ "$form" == "1" ]														# Выключение tor, proxy и vpn
 
 		nmcli networking on													# Включение сети
 		echo "Включение сети"
+		echo
 
 		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] && [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
 			do
