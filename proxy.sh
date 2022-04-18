@@ -23,7 +23,7 @@ if [ `nmcli | grep "proton"` ]
 	fi
 	
 dialog --title "Internet" --ok-label "Tor&Proxy" --cancel-label "Отключить" \
-		--extra-button --extra-label "VPN" --default-button ok \
+		--extra-button --extra-label "VPN" --default-button extra \
 		--pause "$proxy_status\n$vpn_status" 11 40 10
 form="$?"
 clear
@@ -138,6 +138,7 @@ elif [ "$form" == "1" ]														# Выключение tor, proxy и vpn
 			then 
 				protonvpn-cli disconnect
 				protonvpn-cli ks --off
+				echo
 			fi
 
 		if [[ `gsettings get org.gnome.system.proxy mode` == "'manual'" ]]
