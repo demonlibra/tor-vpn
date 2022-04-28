@@ -10,25 +10,24 @@ dns="127.0.2.1"					# IP адрес для dnscrypt
 connection_name=`nmcli -g name,type connection  show  --active \
 		| awk -F: '/ethernet|wireless/ { print $1 }'`					# Имя подключения к точке доступа
 
-#`gsettings get org.gnome.system.proxy mode`							# Текущее состояние proxy
-if [[ `gsettings get org.gnome.system.proxy mode` == "'manual'" ]]
-	then proxy_status="\nProxy Включен"
-	else proxy_status="\nProxy Отключен"
-	fi
+tempfile=`mktemp 2>/dev/null`
+dialog --title "Internet" --ok-label "Выбрать" --cancel-label "Выход" \
+		--default-item 2 --menu " " 11 59 4 \
+		"1" "Tor включить и задать настройки прокси сервера" \
+		"2" "ProtonVPN автоматическое подключение" \
+		"3" "ProtonVPN ручной выбор" \
+		"4" "Обычное подключение"\
+		2> $tempfile
 
-
-if [ `nmcli | grep "proton"` ]
-	then vpn_status="VPN Включен"
-	else vpn_status="VPN Отключен"
-	fi
-	
-dialog --title "Internet" --ok-label "Tor&Proxy" --cancel-label "Отключить" \
-		--extra-button --extra-label "VPN" --default-button extra \
-		--pause "$proxy_status\n$vpn_status" 11 40 10
 form="$?"
+choice=`cat $tempfile`
+
 clear
 
-if [ "$form" == "0" ]	# Tor и Proxy
+# ======================================================================
+# ------------------------------- Tor & Proxy ----------------------------
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+if [ "$choice" == "1" ]
 	then
 		if [[ `nmcli | grep "proton"` ]]
 			then
@@ -41,7 +40,6 @@ if [ "$form" == "0" ]	# Tor и Proxy
 			then
 				echo
 				echo "Название подключения: $connection_name"
-				
 				nmcli con mod "$connection_name" ipv4.dns "$dns"				# Задание IP адреса DNS сервера
 				echo
 				echo "Задание IP адреса DNS: $dns"
@@ -55,8 +53,7 @@ if [ "$form" == "0" ]	# Tor и Proxy
 		nmcli networking off											# Выключение сети
 		echo "Выключение сети"
 		sleep 3
-
-		nmcli networking on														# Включение Wi-Fi
+		nmcli networking on												# Включение Wi-Fi
 		echo "Включение сети"
 		echo
 
@@ -71,18 +68,24 @@ if [ "$form" == "0" ]	# Tor и Proxy
 				sleep 3
 			done
 
-		sudo service tor restart											# Сброс сервиса tor
+		sudo service tor restart										# Сброс сервиса tor
 		echo "Сброс сервиса tor"
-		sudo service privoxy restart										# Сброс сервиса privoxy
+		sudo service privoxy restart									# Сброс сервиса privoxy
 		echo "Сброс сервиса privoxy"
-		sudo systemctl restart dnscrypt-proxy								# Сброс сервиса dnscrypt
+		sudo systemctl restart dnscrypt-proxy							# Сброс сервиса dnscrypt
 		echo "Сброс сервиса dnscrypt"
 		echo
-		gsettings set org.gnome.system.proxy mode 'manual'					# Прокси вручную
+		gsettings set org.gnome.system.proxy mode 'manual'				# Прокси вручную
 		echo "Задание настроек прокси вручную"
 		sleep 3
+# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-elif [ "$form" == "3" ]		# ProtonVPN
+
+
+# ======================================================================
+# ------------------------------- ProtonVPN ----------------------------
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+elif [ "$choice" == "2" ] || [ "$choice" == "3" ]						
 	then
 		if [[ `gsettings get org.gnome.system.proxy mode` == "'manual'" ]]
 			then
@@ -90,7 +93,6 @@ elif [ "$form" == "3" ]		# ProtonVPN
 					then
 						echo
 						echo "Название подключения: $connection_name"
-
 						nmcli con mod "$connection_name" ipv4.ignore-auto-dns no	# Включение получения адреса DNS от маршрутизатора
 						echo
 						echo "Включение автоматического получения IP адреса DNS от маршрутизатора"
@@ -100,7 +102,6 @@ elif [ "$form" == "3" ]		# ProtonVPN
 				echo "Отключение использования прокси"
 			fi
 
-			
 		if [[ `nmcli | grep "proton"` ]]
 			then
 				echo "Отключение от VPN"
@@ -109,11 +110,10 @@ elif [ "$form" == "3" ]		# ProtonVPN
 				sleep 1
 			fi
 
-		nmcli networking  off						# Выключение сети
+		nmcli networking  off											# Выключение сети
 		echo "Выключение сети"
-		sleep 3										# Пауза
-
-		nmcli networking on							# Включение сети
+		sleep 3	
+		nmcli networking on												# Включение сети
 		echo "Включение сети"
 		echo
 
@@ -124,15 +124,36 @@ elif [ "$form" == "3" ]		# ProtonVPN
 			done
 
 		echo
-		while [ "$connect_status" != "0" ]
-			do
-				protonvpn-cli connect --fastest
-				connect_status=$?
-				sleep 3
-				echo
-			done
+		if [ "$choice" == "2" ]											# ProtonVPN Auto
+			then
+				while [ "$connect_status" != "0" ]
+					do
+						protonvpn-cli connect --fastest
+						connect_status=$?
+						sleep 3
+						echo
+					done
+			fi
 
-elif [ "$form" == "1" ]														# Выключение tor, proxy и vpn
+		if [ "$choice" == "3" ]											# ProtonVPN Manual
+			then
+				while [ "$connect_status" != "0" ]
+					do
+						protonvpn-cli connect
+						connect_status=$?
+						sleep 3
+						echo
+					done
+			fi
+# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+
+
+# ======================================================================
+# --------------- # Выключение Tor, Proxy и ProtonVPN ------------------
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+elif [ "$choice" == "4" ]
 	then
 		if [[ `nmcli | grep "proton"` ]]
 			then 
@@ -157,11 +178,10 @@ elif [ "$form" == "1" ]														# Выключение tor, proxy и vpn
 				echo
 			fi
 
-		nmcli networking off										# Выключение сети
+		nmcli networking off											# Выключение сети
 		echo "Выключение сети"
-		sleep 3														# Пауза
-
-		nmcli networking on													# Включение сети
+		sleep 3	
+		nmcli networking on												# Включение сети
 		echo "Включение сети"
 		echo
 
@@ -170,4 +190,5 @@ elif [ "$form" == "1" ]														# Выключение tor, proxy и vpn
 				echo "Ждём Wi-Fi или USB-модем"
 				sleep 3
 			done
+
 	fi
