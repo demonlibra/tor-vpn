@@ -2,9 +2,10 @@
 
 #dns="77.88.8.8"				# IP адрес для DNS Yandex 
 #dns="8.8.8.8"					# IP адрес для DNS Google
-#dns="208.67.222.123"
-#dns="89.233.43.71"
-#dns="1.1.1.3"
+#dns="208.67.222.123"			# IP адрес для Cisco Umbrella (OpenDNS)
+#dns="89.233.43.71"				# IP адрес для UncensoredDNS
+#dns="1.1.1.3"					# IP адрес для Cloudflare DNS
+
 dns="127.0.2.1"					# IP адрес для dnscrypt
 
 connection_name=`nmcli -g name,type connection  show  --active \
@@ -12,11 +13,12 @@ connection_name=`nmcli -g name,type connection  show  --active \
 
 tempfile=`mktemp 2>/dev/null`
 dialog --title "Internet" --ok-label "Выбрать" --cancel-label "Выход" \
-		--default-item 2 --menu " " 11 59 4 \
-		"1" "Tor включить и задать настройки прокси сервера" \
+		--default-item 2 --menu " " 12 47 5 \
+		"1" "Tor включить" \
 		"2" "ProtonVPN автоматическое подключение" \
 		"3" "ProtonVPN ручной выбор" \
-		"4" "Обычное подключение"\
+		"4" "Обычное подключение" \
+		"5" "Проверка подключения" \
 		2> $tempfile
 
 form="$?"
@@ -25,7 +27,7 @@ choice=`cat $tempfile`
 clear
 
 # ======================================================================
-# ------------------------------- Tor & Proxy ----------------------------
+# ------------------------------- Tor ----------------------------------
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 if [ "$choice" == "1" ]
 	then
@@ -47,9 +49,9 @@ if [ "$choice" == "1" ]
 				echo "Отключение автоматического получения IP адреса DNS от маршрутизатора"
 				nmcli con mod "$connection_name" ipv6.method ignore				# Отключение IPV6
 				echo "Отключение IPV6"
-				echo
 			fi
 
+		echo
 		nmcli networking off											# Выключение сети
 		echo "Выключение сети"
 		sleep 3
@@ -62,7 +64,8 @@ if [ "$choice" == "1" ]
 		echo
 		sudo echo
 
-		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] && [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
+		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] \
+			&& [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
 			do
 				echo "Ждём Wi-Fi или USB-модем"
 				sleep 3
@@ -110,6 +113,7 @@ elif [ "$choice" == "2" ] || [ "$choice" == "3" ]
 				sleep 1
 			fi
 
+		echo
 		nmcli networking  off											# Выключение сети
 		echo "Выключение сети"
 		sleep 3	
@@ -117,7 +121,8 @@ elif [ "$choice" == "2" ] || [ "$choice" == "3" ]
 		echo "Включение сети"
 		echo
 
-		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] && [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
+		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] \
+			&& [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
 			do
 				echo "Ждём Wi-Fi или USB-модем"
 				sleep 3
@@ -175,9 +180,9 @@ elif [ "$choice" == "4" ]
 
 				gsettings set org.gnome.system.proxy mode 'none'					# Если прокси был включен, выключить прокси
 				echo "Отключение использования прокси"
-				echo
 			fi
 
+		echop
 		nmcli networking off											# Выключение сети
 		echo "Выключение сети"
 		sleep 3	
@@ -185,10 +190,36 @@ elif [ "$choice" == "4" ]
 		echo "Включение сети"
 		echo
 
-		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] && [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
+		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] \
+			&& [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
 			do
 				echo "Ждём Wi-Fi или USB-модем"
 				sleep 3
 			done
+# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+
+
+# ======================================================================
+# ----------------------- Проверка подключения -------------------------
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+elif [ "$choice" == "5" ]
+	then
+		for ((;;))
+			do
+				if [[ `fping --alive 1.1.1.1 8.8.8.8` ]]
+					then
+						#killall -q mpv
+						pacmd set-sink-volume "alsa_output.pci-0000_00_1f.3.analog-stereo" 60000
+						echo -e `date +%T`" Internet OK\n"
+						mpv --no-terminal "/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga"
+						pacmd set-sink-volume "alsa_output.pci-0000_00_1f.3.analog-stereo" 20000
+						sleep 10
+					else
+						echo -e `date +%T`" No internet connection\n"
+						sleep 60
+					fi
+			done
+# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 	fi
