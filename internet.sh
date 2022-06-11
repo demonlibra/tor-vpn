@@ -1,24 +1,25 @@
 #!/bin/bash
 
-#dns="77.88.8.8"				# IP адрес для DNS Yandex 
-#dns="8.8.8.8"					# IP адрес для DNS Google
-#dns="208.67.222.123"			# IP адрес для Cisco Umbrella (OpenDNS)
-#dns="89.233.43.71"				# IP адрес для UncensoredDNS
-#dns="1.1.1.3"					# IP адрес для Cloudflare DNS
+#dns="77.88.8.8"				# IP адрес DNS Yandex 
+#dns="8.8.8.8"					# IP адрес DNS Google
+#dns="208.67.222.123"			# IP адрес Cisco Umbrella (OpenDNS)
+#dns="89.233.43.71"				# IP адрес UncensoredDNS
+#dns="1.1.1.3"					# IP адрес Cloudflare DNS
 
-dns="127.0.2.1"					# IP адрес для dnscrypt
+dns="127.0.2.1"					# IP адрес dnscrypt
 
 connection_name=`nmcli -g name,type connection  show  --active \
 		| awk -F: '/ethernet|wireless/ { print $1 }'`					# Имя подключения к точке доступа
 
 tempfile=`mktemp 2>/dev/null`
 dialog --title "Internet" --ok-label "Выбрать" --cancel-label "Выход" \
-		--default-item 2 --menu " " 12 47 5 \
-		"1" "Tor включить" \
+		--default-item 2 --menu " " 14 47 6 \
+		"1" "Tor и прокси" \
 		"2" "ProtonVPN автоматическое подключение" \
 		"3" "ProtonVPN ручной выбор" \
 		"4" "Обычное подключение" \
 		"5" "Проверка подключения" \
+		"6" "Выключить сеть" \
 		2> $tempfile
 
 form="$?"
@@ -67,7 +68,7 @@ if [ "$choice" == "1" ]
 		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] \
 			&& [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
 			do
-				echo "Ждём Wi-Fi или USB-модем"
+				echo "Ожидание подключения Wi-Fi или USB-модема"
 				sleep 3
 			done
 
@@ -108,6 +109,7 @@ elif [ "$choice" == "2" ] || [ "$choice" == "3" ]
 		if [[ `nmcli | grep "proton"` ]]
 			then
 				echo "Отключение от VPN"
+				echo
 				protonvpn-cli disconnect
 				protonvpn-cli ks --off
 				sleep 1
@@ -124,7 +126,7 @@ elif [ "$choice" == "2" ] || [ "$choice" == "3" ]
 		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] \
 			&& [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
 			do
-				echo "Ждём Wi-Fi или USB-модем"
+				echo "Ожидание подключения Wi-Fi или USB-модема"
 				sleep 3
 			done
 
@@ -182,7 +184,7 @@ elif [ "$choice" == "4" ]
 				echo "Отключение использования прокси"
 			fi
 
-		echop
+		echo
 		nmcli networking off											# Выключение сети
 		echo "Выключение сети"
 		sleep 3	
@@ -193,7 +195,7 @@ elif [ "$choice" == "4" ]
 		while [[ ! `nmcli device status | grep "wifi" | grep "подключено"` ]] \
 			&& [[ ! `nmcli device status | grep "usb" | grep "подключено"` ]] # Проверка подключения к сети wifi
 			do
-				echo "Ждём Wi-Fi или USB-модем"
+				echo "Ожидание подключения Wi-Fi или USB-модема"
 				sleep 3
 			done
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -222,4 +224,15 @@ elif [ "$choice" == "5" ]
 			done
 # xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-	fi
+
+# ======================================================================
+# --------------------------- Выключить сеть ---------------------------
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+elif [ "$choice" == "6" ]
+	then
+		echo
+		nmcli networking off											# Выключение сети
+		echo "Выключение сети"
+
+
+fi
