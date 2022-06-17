@@ -165,10 +165,12 @@ elif [ "$choice" == "4" ]
 		if [[ `nmcli | grep "proton"` ]]
 			then 
 				protonvpn-cli disconnect
-				protonvpn-cli ks --off
+				#protonvpn-cli ks --off
 				echo
 			fi
 
+		protonvpn-cli ks --off
+		
 		if [[ `gsettings get org.gnome.system.proxy mode` == "'manual'" ]]
 			then
 				if [ "$connection_name" ]
