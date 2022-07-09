@@ -13,13 +13,14 @@ connection_name=`nmcli -g name,type connection  show  --active \
 
 tempfile=`mktemp 2>/dev/null`
 dialog --title "Internet" --ok-label "Выбрать" --cancel-label "Выход" \
-		--default-item 2 --menu " " 14 47 6 \
+		--default-item 2 --menu " " 15 47 7 \
 		"1" "Tor и прокси" \
 		"2" "ProtonVPN автоматическое подключение" \
 		"3" "ProtonVPN ручной выбор" \
 		"4" "Обычное подключение" \
 		"5" "Проверка подключения" \
 		"6" "Выключить сеть" \
+		"7" "Сброс сетевых сервисов" \
 		2> $tempfile
 
 form="$?"
@@ -236,5 +237,19 @@ elif [ "$choice" == "6" ]
 		nmcli networking off											# Выключение сети
 		echo "Выключение сети"
 
+# ======================================================================
+# ---------------------- Сброс сетевых сервисов ------------------------
+# vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+elif [ "$choice" == "7" ]
+	then
+		protonvpn-cli disconnect
+		protonvpn-cli ks --off
+
+		echo
+		sudo systemctl restart networking
+		sleep 3
+		echo
+		sudo systemctl restart NetworkManager
+		#echo ""
 
 fi
